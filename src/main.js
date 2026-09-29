@@ -1,79 +1,79 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Chess } from 'chess.js';
 
-const canvas=document.querySelector('#world'),welcome=document.querySelector('#welcome'),lessonEl=document.querySelector('#lesson');
-lessonEl.classList.add('hidden');
+const canvas=document.querySelector('#world'),welcome=document.querySelector('#welcome'),coach=document.querySelector('#coach'),turnEl=document.querySelector('#turn');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.outputColorSpace=THREE.SRGBColorSpace;
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x8ed0ff);scene.fog=new THREE.Fog(0x8ed0ff,34,75);
-const camera=new THREE.PerspectiveCamera(48,1,.1,120);camera.position.set(15,15,18);
-const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.target.set(0,0,0);controls.minDistance=8;controls.maxDistance=29;controls.maxPolarAngle=Math.PI*.47;
-scene.add(new THREE.HemisphereLight(0xf3fbff,0x668844,2.5));
-const sun=new THREE.DirectionalLight(0xffffff,3.2);sun.position.set(-9,18,11);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
-const M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.68});
-function box(parent,x,y,z,sx,sy,sz,c){const o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),M(c));o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;parent.add(o);return o}
-function cyl(parent,x,y,z,r,h,c,n=12){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,n),M(c));o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}
-const ground=new THREE.Mesh(new THREE.CylinderGeometry(16.5,17.5,1,48),M(0x83c965));ground.position.y=-.7;ground.receiveShadow=true;scene.add(ground);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x8fd1ff);scene.fog=new THREE.Fog(0x8fd1ff,34,78);
+const camera=new THREE.PerspectiveCamera(46,1,.1,120);camera.position.set(14,15,17);
+const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.target.set(0,0,0);controls.minDistance=8;controls.maxDistance=29;controls.maxPolarAngle=Math.PI*.48;
+scene.add(new THREE.HemisphereLight(0xf4fbff,0x607f42,2.5));const sun=new THREE.DirectionalLight(0xffffff,3.2);sun.position.set(-10,18,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.67,metalness:.02});
+function box(p,x,y,z,sx,sy,sz,c){const o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat(c));o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o}
+function cyl(p,x,y,z,r,h,c,n=12){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,n),mat(c));o.position.set(x,y,z);o.castShadow=true;p.add(o);return o}
+const ground=new THREE.Mesh(new THREE.CylinderGeometry(16.5,17.5,1,48),mat(0x82c965));ground.position.y=-.72;ground.receiveShadow=true;scene.add(ground);
 
-/* ===== BÀN CỜ KHỔNG LỒ LÀ TRUNG TÂM MAP ===== */
-const board=new THREE.Group();scene.add(board);const CELL=1.35,half=3.5*CELL;
-box(board,0,-.13,0,CELL*8+.75,.35,CELL*8+.75,0x65432e);
-const squares=[],interactive=[];
-for(let r=0;r<8;r++)for(let c=0;c<8;c++){const q=box(board,(c-3.5)*CELL,.08,(r-3.5)*CELL,CELL-.035,.20,CELL-.035,(r+c)%2?0x75aa68:0xf1d6a1);q.userData={r,c,type:'square'};squares.push(q)}
-for(let i=-4;i<=4;i++){box(scene,i*1.35,-.42,-6.4,.16,.25,.8,0xe8bd68);box(scene,i*1.35,-.42,6.4,.16,.25,.8,0xe8bd68)}
+const CELL=1.34,boardG=new THREE.Group();scene.add(boardG);box(boardG,0,-.14,0,CELL*8+.75,.35,CELL*8+.75,0x60402d);
+const squares=[],squareMeshes=[];
+function sqName(r,c){return 'abcdefgh'[c]+(8-r)}
+for(let r=0;r<8;r++)for(let c=0;c<8;c++){const q=box(boardG,(c-3.5)*CELL,.07,(r-3.5)*CELL,CELL-.035,.18,CELL-.035,(r+c)%2?0x739f60:0xf0d5a1);q.userData={square:sqName(r,c)};squares.push(q);squareMeshes.push(q)}
 
-/* ===== QUÂN CỜ KHỐI LẮP GHÉP ===== */
-const colors={pawn:0x56b8ea,rook:0xe96d5c,knight:0xf0a64b,bishop:0x9b77d3,queen:0xef78ad,king:0x4e83d8};
-function piece(kind,color=colors[kind]){
- const g=new THREE.Group(),b=(x,y,z,sx,sy,sz,c=color)=>box(g,x,y,z,sx,sy,sz,c),s=(x,y,z,r=.19,c=color)=>cyl(g,x,y,z,r,.14,c);
- b(0,.18,0,.78,.34,.78);for(const x of[-.2,.2])for(const z of[-.2,.2])s(x,.42,z);
- if(kind==='pawn'){b(0,.67,0,.48,.55,.48);b(0,1.05,0,.62,.22,.62);s(0,1.3,0,.3)}
- if(kind==='rook'){b(0,.72,0,.58,.72,.58);b(0,1.13,0,.78,.2,.78);for(const x of[-.27,.27])for(const z of[-.27,.27])b(x,1.37,z,.2,.28,.2)}
- if(kind==='knight'){b(0,.67,0,.5,.62,.5);b(.08,1.05,-.03,.5,.45,.48);b(.17,1.36,-.16,.45,.28,.64);b(.2,1.55,-.37,.36,.22,.32);s(.2,1.58,-.53,.08,0x25334b)}
- if(kind==='bishop'){b(0,.69,0,.48,.62,.48);b(0,1.08,0,.62,.2,.62);const co=new THREE.Mesh(new THREE.ConeGeometry(.37,.7,8),M(color));co.position.y=1.48;co.castShadow=true;g.add(co);s(0,1.86,0,.16)}
- if(kind==='queen'){b(0,.7,0,.5,.65,.5);b(0,1.12,0,.68,.22,.68);for(const [x,z] of[[-.25,-.25],[.25,-.25],[-.25,.25],[.25,.25],[0,0]])s(x,1.48,z,.15)}
- if(kind==='king'){b(0,.72,0,.52,.7,.52);b(0,1.16,0,.7,.22,.7);b(0,1.55,0,.18,.65,.18);b(0,1.68,0,.56,.15,.16)}
- g.userData.kind=kind;return g;
+const C={w:0xf5e6b8,b:0x33425e},accent={p:0x4bb8e9,r:0xe75e55,n:0xf0a23d,b:0x9b70d0,q:0xea70aa,k:0x4b80dc};
+function makePiece(type,color){
+ const g=new THREE.Group(),base=C[color],a=accent[type],B=(x,y,z,sx,sy,sz,c=base)=>box(g,x,y,z,sx,sy,sz,c),S=(x,y,z,r=.17,c=a)=>cyl(g,x,y,z,r,.14,c);
+ B(0,.16,0,.78,.32,.78);for(const x of[-.2,.2])for(const z of[-.2,.2])S(x,.39,z,.17,base);
+ if(type==='p'){B(0,.61,0,.46,.55,.46);B(0,.96,0,.58,.18,.58,a);cyl(g,0,1.22,0,.29,.42,base,16)}
+ if(type==='r'){B(0,.65,0,.57,.7,.57);B(0,1.05,0,.76,.18,.76,a);for(const x of[-.26,.26])for(const z of[-.26,.26])B(x,1.3,z,.2,.3,.2)}
+ if(type==='n'){B(0,.62,0,.5,.58,.5);B(.08,1,-.04,.5,.45,.46);B(.18,1.3,-.16,.44,.28,.62,a);B(.22,1.48,-.38,.35,.2,.3);S(.24,1.5,-.52,.065,0x111827)}
+ if(type==='b'){B(0,.63,0,.47,.58,.47);B(0,1.02,0,.62,.18,.62,a);const co=new THREE.Mesh(new THREE.ConeGeometry(.36,.72,8),mat(base));co.position.y=1.42;co.castShadow=true;g.add(co);S(0,1.81,0,.15,a)}
+ if(type==='q'){B(0,.64,0,.5,.62,.5);B(0,1.05,0,.68,.2,.68,a);for(const [x,z] of[[-.25,-.25],[.25,-.25],[-.25,.25],[.25,.25],[0,0]])S(x,1.4,z,.14,base)}
+ if(type==='k'){B(0,.66,0,.52,.68,.52);B(0,1.08,0,.7,.2,.7,a);B(0,1.47,0,.17,.62,.17);B(0,1.6,0,.54,.14,.15,a)}
+ g.scale.setScalar(.78);return g
 }
-const lessonData={
- pawn:{name:'Tốt',text:'Tốt tiến thẳng một ô. Ở nước đầu tiên, Tốt có thể tiến hai ô.',from:[6,3],valid:[[5,3],[4,3]]},
- rook:{name:'Xe',text:'Xe đi thẳng theo hàng hoặc cột và có thể đi nhiều ô nếu không bị cản.',from:[7,0],valid:[[6,0],[5,0],[4,0],[3,0],[2,0],[1,0],[0,0],[7,1],[7,2],[7,3]]},
- knight:{name:'Mã',text:'Mã đi hình chữ L, hai ô theo một hướng rồi một ô sang bên. Mã có thể nhảy qua quân.',from:[7,1],valid:[[5,0],[5,2],[6,3]]},
- bishop:{name:'Tượng',text:'Tượng đi theo đường chéo và có thể đi nhiều ô nếu không bị cản.',from:[7,2],valid:[[6,1],[5,0],[6,3],[5,4],[4,5],[3,6],[2,7]]},
- queen:{name:'Hậu',text:'Hậu đi ngang, dọc như Xe và đi chéo như Tượng.',from:[7,3],valid:[[6,3],[5,3],[4,3],[3,3],[7,4],[7,2],[6,2],[5,1],[4,0],[6,4],[5,5],[4,6],[3,7]]},
- king:{name:'Vua',text:'Vua đi một ô theo bất kỳ hướng nào.',from:[7,4],valid:[[6,3],[6,4],[6,5],[7,3],[7,5]]}
-};
-const pieces=[];
-function place(kind,r,c,scale=.76){const p=piece(kind);p.position.set((c-3.5)*CELL,.2,(r-3.5)*CELL);p.scale.setScalar(scale);p.userData={...p.userData,kind,r,c};p.traverse(o=>{if(o.isMesh){o.userData.piece=p;interactive.push(o)}});board.add(p);pieces.push(p);return p}
-const hero={rook:place('rook',7,0),knight:place('knight',7,1),bishop:place('bishop',7,2),queen:place('queen',7,3),king:place('king',7,4),pawn:place('pawn',6,3,.7)};
-place('bishop',7,5);place('knight',7,6);place('rook',7,7);
-for(let c=0;c<8;c++)if(c!==3)place('pawn',6,c,.7);
+const game=new Chess(),pieceMap=new Map(),pieceHits=[];
+function pos(square){const c='abcdefgh'.indexOf(square[0]),r=8-Number(square[1]);return new THREE.Vector3((c-3.5)*CELL,.2,(r-3.5)*CELL)}
+function rebuildPieces(){
+ pieceMap.forEach(p=>boardG.remove(p));pieceMap.clear();pieceHits.length=0;
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){const d=game.board()[r][c];if(!d)continue;const s=sqName(r,c),p=makePiece(d.type,d.color);p.position.copy(pos(s));p.userData={square:s,type:d.type,color:d.color};p.traverse(o=>{if(o.isMesh){o.userData.root=p;pieceHits.push(o)}});boardG.add(p);pieceMap.set(s,p)}
+}
+rebuildPieces();
 
-/* trang trí vương quốc quanh bàn */
-for(let i=0;i<30;i++){const a=i/30*Math.PI*2,r=13.2+(i%3)*.55,g=new THREE.Group();g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);scene.add(g);box(g,0,.45,0,.25,.9,.25,0x76513c);const t=new THREE.Mesh(new THREE.ConeGeometry(.62,1.5,6),M(i%2?0x4b9b55:0x61b568));t.position.y=1.45;g.add(t)}
-for(const [x,z,c] of[[-10,-8,0xf2c66d],[10,-8,0xe98972],[-11,6,0x9d83d8],[11,6,0x65b990]]){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);box(g,0,.7,0,2.8,1.4,2.8,c);box(g,0,1.8,0,1.5,1.0,1.5,0xffe7aa);const roof=new THREE.Mesh(new THREE.ConeGeometry(1.35,1.5,4),M(c));roof.position.y=3;roof.rotation.y=Math.PI/4;g.add(roof)}
+/* particles / skill VFX */
+const effects=[];
+function particles(at,color,count=18,speed=.12){const arr=[];for(let i=0;i<count;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.12),mat(color));m.position.copy(at);m.position.y+=.8;scene.add(m);arr.push({m,v:new THREE.Vector3((Math.random()-.5)*speed,(.3+Math.random())*speed,(Math.random()-.5)*speed),life:1})}effects.push(...arr)}
+function ring(at,color){const m=new THREE.Mesh(new THREE.TorusGeometry(.65,.08,8,32),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9}));m.rotation.x=Math.PI/2;m.position.copy(at);m.position.y=.3;scene.add(m);effects.push({m,ring:true,life:1})}
+function selectSkill(p){const names={p:'Tốt xung phong!',r:'Xe mở đường!',n:'Mã nhảy!',b:'Tượng khai tuyến!',q:'Hậu quyền năng!',k:'Vua chỉ huy!'};ring(p.position.clone(),accent[p.userData.type]);particles(p.position.clone(),accent[p.userData.type],10,.06);toast(names[p.userData.type]);p.userData.pulse=1}
+function captureSkill(attacker,victim,done){const a=attacker.userData.type;const color=accent[a];ring(victim.position.clone(),color);particles(victim.position.clone(),color,a==='q'?34:24,a==='n'?.17:.13);victim.userData.defeated=1;attacker.userData.attack=1;setTimeout(done,520)}
+function defeatTick(p,dt){if(!p.userData.defeated)return;p.rotation.z+=dt*8;p.scale.multiplyScalar(.94);p.position.y-=.012}
+function skillTick(p,t){if(p.userData.pulse){p.userData.pulse*=.91;const s=.78*(1+Math.sin(t*18)*.08*p.userData.pulse);p.scale.setScalar(s)}if(p.userData.attack){p.userData.attack*=.9;p.rotation.y+=.22*p.userData.attack}}
 
-/* ===== ÂM THANH ===== */
-let ctx,timer;
-function music(){if(timer)return;ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();ctx.resume();const n=[261.6,329.6,392,523.3,440,392,329.6,293.7];let i=0;timer=setInterval(()=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=n[i++%n.length];g.gain.setValueAtTime(.0001,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.025,ctx.currentTime+.04);g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.42);o.connect(g).connect(ctx.destination);o.start();o.stop(ctx.currentTime+.45)},520)}
-function say(t){if(!speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='vi-VN';u.rate=.88;u.pitch=1.12;const v=speechSynthesis.getVoices().find(v=>v.lang?.toLowerCase().startsWith('vi'));if(v)u.voice=v;speechSynthesis.speak(u)}
-
-/* ===== GAMEPLAY 3D-FIRST ===== */
-const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();let down={},active=null,phase='explore',anim=null;
-function cellPos(r,c){return new THREE.Vector3((c-3.5)*CELL,.2,(r-3.5)*CELL)}
-function clearMarks(){squares.forEach(q=>{q.material.emissive?.setHex(0);q.scale.y=1;q.userData.valid=false})}
-function markMoves(d){clearMarks();d.valid.forEach(([r,c])=>{const q=squares[r*8+c];q.material.emissive.setHex(0x6a5b00);q.material.emissiveIntensity=.65;q.scale.y=1.18;q.userData.valid=true;interactive.push(q)})}
-function focusPiece(p){const d=lessonData[p.userData.kind];if(!d)return;active={p,d};phase='demo';controls.enabled=false;const target=p.position.clone();const cp=new THREE.Vector3(target.x+4.6,7.2,target.z+6.5);anim={t:0,from:camera.position.clone(),to:cp,targetFrom:controls.target.clone(),targetTo:target.clone(),done:()=>demo(p,d)};say('Đây là quân '+d.name+'. '+d.text)}
-function demo(p,d){markMoves(d);const dest=d.valid[0],a=p.position.clone(),b=cellPos(dest[0],dest[1]);setTimeout(()=>{anim={t:0,from:a,to:b,obj:p,demo:true,done:()=>{setTimeout(()=>{p.position.copy(a);phase='try';say('Bây giờ đến lượt con. Hãy chạm vào một ô đang sáng để đưa quân '+d.name+' tới đó nhé.')},500)}}},650)}
-function moveChosen(q){if(phase!=='try'||!q.userData.valid)return;phase='moving';const from=active.p.position.clone(),to=cellPos(q.userData.r,q.userData.c);anim={t:0,from,to,obj:active.p,done:()=>{clearMarks();toast('Chính xác! ⭐');say('Chính xác! Giỏi lắm. Con nhận được một ngôi sao!');const done=new Set(JSON.parse(localStorage.getItem('chessKingdomDone')||'[]'));done.add(active.p.userData.kind);localStorage.setItem('chessKingdomDone',JSON.stringify([...done]));updateStars();setTimeout(resetExplore,1700)}}}
-function resetExplore(){if(active)active.p.position.copy(cellPos(active.d.from[0],active.d.from[1]));active=null;phase='explore';controls.enabled=true;anim={t:0,from:camera.position.clone(),to:new THREE.Vector3(15,15,18),targetFrom:controls.target.clone(),targetTo:new THREE.Vector3(0,0,0)};toast('Chọn một quân cờ khác!')}
+let selected=null,legal=[],busy=false;
+function clearHighlights(){squares.forEach(q=>{q.material.emissive.setHex(0);q.material.emissiveIntensity=0;q.scale.y=1})}
+function highlight(moves){clearHighlights();moves.forEach(m=>{const q=squares.find(x=>x.userData.square===m.to);q.material.emissive.setHex(m.captured?0x9d1028:0x7a6500);q.material.emissiveIntensity=m.captured?.9:.7;q.scale.y=1.18})}
+function choosePiece(p){
+ if(busy||p.userData.color!==game.turn())return;
+ selected=p;legal=game.moves({square:p.userData.square,verbose:true});selectSkill(p);highlight(legal);
+ const n={p:'Tốt',r:'Xe',n:'Mã',b:'Tượng',q:'Hậu',k:'Vua'}[p.userData.type];
+ coach.textContent='Đã chọn '+n+'. Ô vàng: nước đi. Ô đỏ: có thể bắt quân đối phương.';say('Đây là quân '+n+'. Con hãy chọn một ô đang sáng.')
+}
+function moveTo(square){
+ if(!selected||busy)return;const m=legal.find(x=>x.to===square);if(!m)return;
+ busy=true;const attacker=selected,victim=pieceMap.get(square),from=attacker.position.clone(),to=pos(square);
+ const execute=()=>{const move=game.move({from:m.from,to:m.to,promotion:'q'});animateMove(attacker,from,to,()=>{rebuildPieces();selected=null;legal=[];clearHighlights();busy=false;turnEl.textContent=game.turn()==='w'?'Lượt Trắng':'Lượt Đen';if(move.captured){toast('Bắt quân thành công! ✨');say('Tuyệt lắm! Con đã bắt được quân đối phương.')}else say('Nước đi hợp lệ. Giỏi lắm!');if(game.isCheckmate()){toast('Chiếu hết! 👑');say('Chiếu hết! Ván cờ kết thúc.')}else if(game.inCheck()){toast('Chiếu! ⚡');say('Chiếu! Vua đang bị tấn công.')}})};
+ if(victim&&victim.userData.color!==attacker.userData.color)captureSkill(attacker,victim,execute);else execute()
+}
+let mover=null;function animateMove(obj,from,to,done){mover={obj,from,to,t:0,done}}
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();let down={};
 canvas.addEventListener('pointerdown',e=>down={x:e.clientX,y:e.clientY});
-canvas.addEventListener('pointerup',e=>{if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>10)return;const r=canvas.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(pointer,camera);if(phase==='try'){const hit=ray.intersectObjects(squares,false).find(h=>h.object.userData.valid);if(hit)return moveChosen(hit.object)}if(phase==='explore'){const hit=ray.intersectObjects(interactive.filter(o=>o.userData.piece),false)[0];if(hit)focusPiece(hit.object.userData.piece)}});
+canvas.addEventListener('pointerup',e=>{if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>10)return;const r=canvas.getBoundingClientRect();mouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(mouse,camera);const ph=ray.intersectObjects(pieceHits,false)[0];if(ph){const p=ph.object.userData.root;if(selected&&p.userData.color!==selected.userData.color&&legal.some(m=>m.to===p.userData.square))return moveTo(p.userData.square);return choosePiece(p)}const sh=ray.intersectObjects(squareMeshes,false)[0];if(sh)moveTo(sh.object.userData.square)});
 
-document.querySelector('#startBtn').onclick=()=>{music();welcome.classList.add('hidden');say('Chào con đến với Vương quốc Cờ vua. Đây là bàn cờ khổng lồ. Con hãy xoay bàn cờ và chạm vào một quân cờ để học nhé!');toast('Chạm trực tiếp vào một quân cờ! ♟️')};
-function updateStars(){document.querySelector('#stars').textContent=JSON.parse(localStorage.getItem('chessKingdomDone')||'[]').length}updateStars();
-function toast(t){const e=document.querySelector('#toast');e.textContent=t;e.classList.remove('hidden');clearTimeout(window._tt);window._tt=setTimeout(()=>e.classList.add('hidden'),2100)}
+let audioCtx,musicTimer;
+function music(){if(musicTimer)return;audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume();const ns=[261.6,329.6,392,523.3,440,392,329.6,293.7];let i=0;musicTimer=setInterval(()=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=ns[i++%ns.length];g.gain.setValueAtTime(.0001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.022,audioCtx.currentTime+.03);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.38);o.connect(g).connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.4)},500)}
+function say(t){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='vi-VN';u.rate=.9;u.pitch=1.08;const v=speechSynthesis.getVoices().find(v=>v.lang?.toLowerCase().startsWith('vi'));if(v)u.voice=v;speechSynthesis.speak(u)}
+function toast(t){const e=document.querySelector('#toast');e.textContent=t;e.classList.remove('hidden');clearTimeout(window._tt);window._tt=setTimeout(()=>e.classList.add('hidden'),1800)}
+document.querySelector('#startBtn').onclick=()=>{music();welcome.classList.add('hidden');coach.classList.remove('hidden');say('Chào con đến với đấu trường cờ vua. Trên bàn có đủ hai đội Trắng và Đen. Con hãy chạm một quân Trắng để xem những nước đi hợp lệ.')};
+
 function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);resize();
-function ease(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
-function animate(){requestAnimationFrame(animate);if(anim){anim.t=Math.min(1,anim.t+.025);const e=ease(anim.t);if(anim.obj){anim.obj.position.lerpVectors(anim.from,anim.to,e);anim.obj.position.y+=Math.sin(e*Math.PI)*1.4}else{camera.position.lerpVectors(anim.from,anim.to,e);if(anim.targetTo)controls.target.lerpVectors(anim.targetFrom,anim.targetTo,e)}if(anim.t>=1){const d=anim.done;anim=null;d?.()}}controls.update();renderer.render(scene,camera)}animate();
+let last=performance.now(),time=0;function animate(now){requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000);last=now;time+=dt;if(mover){mover.t=Math.min(1,mover.t+dt*2.5);const e=1-Math.pow(1-mover.t,3);mover.obj.position.lerpVectors(mover.from,mover.to,e);mover.obj.position.y=.2+Math.sin(e*Math.PI)*.8;if(mover.t>=1){const d=mover.done;mover=null;d()}}pieceMap.forEach(p=>{defeatTick(p,dt);skillTick(p,time)});for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.life-=dt*(e.ring?1.8:1.4);if(e.ring){e.m.scale.addScalar(dt*2.2);e.m.material.opacity=e.life}else{e.v.y-=dt*.18;e.m.position.add(e.v);e.m.rotation.x+=.12;e.m.rotation.y+=.1}if(e.life<=0){scene.remove(e.m);effects.splice(i,1)}}controls.update();renderer.render(scene,camera)}requestAnimationFrame(animate);
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');
