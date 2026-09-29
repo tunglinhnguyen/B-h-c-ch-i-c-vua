@@ -23,6 +23,22 @@ const cloudMat=new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,o
 for(let i=0;i<7;i++){const g=new THREE.Group();for(const [x,y,z,r] of[[0,0,0,.8],[.7,.05,0,.6],[-.65,.02,0,.55],[.2,.35,0,.62]]){const m=new THREE.Mesh(new THREE.SphereGeometry(r,10,8),cloudMat);m.position.set(x,y,z);g.add(m)}g.position.set(-15+i*5,8+(i%2),-14-(i%3)*2);g.userData.cloud=true;world.add(g)}
 const flags=[];for(const [x,z,c] of[[-7,-11,0xffd34d],[7,-11,0xef78ad],[-13,0,0x56b8ea],[13,0,0xf0a64b]]){const g=new THREE.Group();g.position.set(x,0,z);cyl(g,0,1.5,0,.06,3,0x6f4b2f);const flag=box(g,.45,2.55,0,.85,.48,.08,c);flag.geometry.translate(.42,0,0);flags.push(flag);world.add(g)}
 
+const castleLevels={w:0,b:0},castles={};
+function buildCastle(side){
+ const old=castles[side];if(old)world.remove(old);
+ const g=new THREE.Group();g.name='castle-'+side;const z=side==='w'?10.5:-10.5,c=side==='w'?0xf0d58f:0x4b5b78,l=castleLevels[side];g.position.set(0,0,z);
+ const brick=(x,y,z,sx=.75,sy=.38,sz=.75,col=c)=>{const b=box(g,x,y,z,sx,sy,sz,col);for(const dx of[-.22,.22])for(const dz of[-.22,.22])cyl(g,x+dx,y+sy/2+.06,z+dz,.07,.12,col,10);return b};
+ // level 0 gate, then walls, towers, keep, crown tower
+ brick(0,.2,0,2.5,.4,.8,0x6f4b2f);
+ for(let i=-4;i<=4;i++){if(Math.abs(i)>1)brick(i*.72,.22,0);if(l>=1)brick(i*.72,.60,0)}
+ if(l>=2)for(const x of[-3.2,3.2])for(let y=0;y<3;y++)brick(x,.25+y*.38,0,1,.38,1);
+ if(l>=3){for(let y=0;y<4;y++)for(let x=-1;x<=1;x++)brick(x*.72,.25+y*.38,.3);brick(0,1.85,.3,2.4,.35,1.2,accent.q)}
+ if(l>=4){for(const x of[-3.2,3.2]){brick(x,1.55,0,1.25,.35,1.25,accent.k);for(const dx of[-.4,.4])for(const dz of[-.4,.4])brick(x+dx,1.92,dz,.25,.35,.25,accent.k)}}
+ castles[side]=g;world.add(g)
+}
+function upgradeCastle(side){castleLevels[side]=Math.min(4,castleLevels[side]+1);buildCastle(side);if(side===playerSide){toast('🏰 Thành trì của '+playerName+' được nâng cấp!');say('Tuyệt vời '+playerName+'. Thành trì của con được nâng cấp!')}}
+buildCastle('w');buildCastle('b');
+
 const CELL=1.34,boardG=new THREE.Group();scene.add(boardG);box(boardG,0,-.14,0,CELL*8+.75,.35,CELL*8+.75,0x60402d);
 const squares=[],squareMeshes=[];
 function sqName(r,c){return 'abcdefgh'[c]+(8-r)}
@@ -30,15 +46,16 @@ for(let r=0;r<8;r++)for(let c=0;c<8;c++){const q=box(boardG,(c-3.5)*CELL,.07,(r-
 
 const C={w:0xf5e6b8,b:0x33425e},accent={p:0x4bb8e9,r:0xe75e55,n:0xf0a23d,b:0x9b70d0,q:0xea70aa,k:0x4b80dc};
 function makePiece(type,color){
- const g=new THREE.Group(),base=C[color],a=accent[type],B=(x,y,z,sx,sy,sz,c=base)=>box(g,x,y,z,sx,sy,sz,c),S=(x,y,z,r=.17,c=a)=>cyl(g,x,y,z,r,.14,c);
- B(0,.16,0,.78,.32,.78);for(const x of[-.2,.2])for(const z of[-.2,.2])S(x,.39,z,.17,base);
- if(type==='p'){B(0,.61,0,.46,.55,.46);B(0,.96,0,.58,.18,.58,a);cyl(g,0,1.22,0,.29,.42,base,16)}
- if(type==='r'){B(0,.65,0,.57,.7,.57);B(0,1.05,0,.76,.18,.76,a);for(const x of[-.26,.26])for(const z of[-.26,.26])B(x,1.3,z,.2,.3,.2)}
- if(type==='n'){B(0,.62,0,.5,.58,.5);B(.08,1,-.04,.5,.45,.46);B(.18,1.3,-.16,.44,.28,.62,a);B(.22,1.48,-.38,.35,.2,.3);S(.24,1.5,-.52,.065,0x111827)}
- if(type==='b'){B(0,.63,0,.47,.58,.47);B(0,1.02,0,.62,.18,.62,a);const co=new THREE.Mesh(new THREE.ConeGeometry(.36,.72,8),mat(base));co.position.y=1.42;co.castShadow=true;g.add(co);S(0,1.81,0,.15,a)}
- if(type==='q'){B(0,.64,0,.5,.62,.5);B(0,1.05,0,.68,.2,.68,a);for(const [x,z] of[[-.25,-.25],[.25,-.25],[-.25,.25],[.25,.25],[0,0]])S(x,1.4,z,.14,base)}
- if(type==='k'){B(0,.66,0,.52,.68,.52);B(0,1.08,0,.7,.2,.7,a);B(0,1.47,0,.17,.62,.17);B(0,1.6,0,.54,.14,.15,a)}
- g.scale.setScalar(.78);return g
+ const g=new THREE.Group(),base=C[color],a=accent[type],B=(x,y,z,sx,sy,sz,c=base)=>box(g,x,y,z,sx,sy,sz,c),S=(x,y,z,r=.17,c=base,h=.14,n=16)=>cyl(g,x,y,z,r,h,c,n);
+ // stepped chess base made from toy bricks
+ S(0,.10,0,.43,base,.20);S(0,.26,0,.35,a,.12);S(0,.38,0,.29,base,.14);
+ if(type==='p'){S(0,.66,0,.19,base,.48);const h=new THREE.Mesh(new THREE.SphereGeometry(.27,14,10),mat(base));h.position.y=1.03;g.add(h)}
+ if(type==='r'){S(0,.69,0,.25,base,.58);B(0,1.02,0,.62,.18,.62,a);for(const x of[-.22,.22])for(const z of[-.22,.22])B(x,1.22,z,.18,.28,.18,base)}
+ if(type==='n'){S(0,.62,0,.23,base,.38);B(.04,.88,0,.36,.42,.34,base);B(.13,1.16,-.10,.36,.48,.32,base);B(.18,1.38,-.28,.34,.25,.48,a);B(.18,1.50,-.48,.30,.20,.24,base);S(.18,1.53,-.58,.045,0x111827,.08,8);B(-.08,1.52,-.13,.10,.25,.12,a)}
+ if(type==='b'){S(0,.70,0,.20,base,.58);S(0,1.02,0,.29,a,.12);const h=new THREE.Mesh(new THREE.ConeGeometry(.29,.66,14),mat(base));h.position.y=1.37;g.add(h);const cut=B(.09,1.43,-.01,.08,.38,.5,a);cut.rotation.z=-.55}
+ if(type==='q'){S(0,.72,0,.20,base,.62);S(0,1.06,0,.30,a,.12);const crown=new THREE.Group();g.add(crown);for(let i=0;i<6;i++){const an=i/6*Math.PI*2;const tip=S(Math.cos(an)*.22,1.40,Math.sin(an)*.22,.075,a,.28,10)}S(0,1.51,0,.10,base,.22)}
+ if(type==='k'){S(0,.74,0,.21,base,.66);S(0,1.10,0,.31,a,.12);S(0,1.35,0,.16,base,.36);B(0,1.64,0,.10,.43,.10,a);B(0,1.70,0,.42,.10,.10,a)}
+ g.scale.setScalar(.86);g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g
 }
 const game=new Chess(),pieceMap=new Map(),pieceHits=[];
 function pos(square){const c='abcdefgh'.indexOf(square[0]),r=8-Number(square[1]);return new THREE.Vector3((c-3.5)*CELL,.2,(r-3.5)*CELL)}
@@ -52,10 +69,18 @@ rebuildPieces();
 const effects=[];
 function particles(at,color,count=18,speed=.12){const arr=[];for(let i=0;i<count;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.12),mat(color));m.position.copy(at);m.position.y+=.8;scene.add(m);arr.push({m,v:new THREE.Vector3((Math.random()-.5)*speed,(.3+Math.random())*speed,(Math.random()-.5)*speed),life:1})}effects.push(...arr)}
 function ring(at,color){const m=new THREE.Mesh(new THREE.TorusGeometry(.65,.08,8,32),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9}));m.rotation.x=Math.PI/2;m.position.copy(at);m.position.y=.3;scene.add(m);effects.push({m,ring:true,life:1})}
-function selectSkill(p){const names={p:'Tốt xung phong!',r:'Xe mở đường!',n:'Mã nhảy!',b:'Tượng khai tuyến!',q:'Hậu quyền năng!',k:'Vua chỉ huy!'};ring(p.position.clone(),accent[p.userData.type]);particles(p.position.clone(),accent[p.userData.type],10,.06);toast(names[p.userData.type]);p.userData.pulse=1}
-function captureSkill(attacker,victim,done){const a=attacker.userData.type,color=accent[a],at=victim.position.clone(),skill={p:['Tốt đột kích! 💥',18,.12],r:['Xe công thành! 🧱',32,.2],n:['Mã thiên mã! ⚡',28,.24],b:['Tượng quang tuyến! ✨',30,.18],q:['Hậu bão phép! 🌟',46,.27],k:['Vua phán quyết! 👑',38,.2]}[a];toast(skill[0]);say(skill[0]);ring(at,color);particles(at,color,skill[1],skill[2]);if(a==='r'){for(let i=0;i<3;i++)setTimeout(()=>ring(at,color),i*110)}if(a==='n'){attacker.rotation.z=.25;attacker.position.y+=.5}if(a==='b'){particles(attacker.position.clone(),0xffffff,18,.16)}if(a==='q'){ring(attacker.position.clone(),0xffd34d);particles(at,0xffd34d,28,.22)}if(a==='k'){ring(at,0xffffff);ring(attacker.position.clone(),color)}victim.userData.defeated=1;attacker.userData.attack=1;setTimeout(done,a==='q'?760:600)}
+function beam(from,to,color){const d=to.clone().sub(from),m=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,d.length(),8),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.85}));m.position.copy(from).add(to).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());scene.add(m);effects.push({m,beam:true,life:1})}
+function selectSkill(p){const t=p.userData.type,a=accent[t],at=p.position.clone(),names={p:'Tốt: Khiên dũng sĩ!',r:'Xe: Pháo đài thức tỉnh!',n:'Mã: Thiên mã bật nhảy!',b:'Tượng: Đường chéo ánh sáng!',q:'Hậu: Vương miện ma pháp!',k:'Vua: Khiên hoàng gia!'};toast(names[t]);if(t==='p'){ring(at,0x65d8ff);p.userData.bob=1}else if(t==='r'){for(let i=0;i<3;i++)setTimeout(()=>ring(at,a),i*90);p.userData.stomp=1}else if(t==='n'){particles(at,0xffd34d,22,.13);p.userData.hop=1}else if(t==='b'){beam(at.clone().add(new THREE.Vector3(-1.5,.25,-1.5)),at.clone().add(new THREE.Vector3(1.5,.25,1.5)),a);beam(at.clone().add(new THREE.Vector3(-1.5,.25,1.5)),at.clone().add(new THREE.Vector3(1.5,.25,-1.5)),a)}else if(t==='q'){ring(at,a);ring(at,0xffd34d);particles(at,a,32,.16);p.userData.spin=1}else{ring(at,0xffffff);ring(at,a);p.userData.shield=1}p.userData.pulse=1}
+function captureSkill(attacker,victim,done){const t=attacker.userData.type,a=accent[t],A=attacker.position.clone(),V=victim.position.clone(),names={p:'Tốt - Cú húc dũng cảm!',r:'Xe - Công thành chấn động!',n:'Mã - Thiên mã giáng xuống!',b:'Tượng - Quang tuyến chéo!',q:'Hậu - Bão vương miện!',k:'Vua - Phán quyết hoàng gia!'};toast(names[t]);say(names[t]);
+ if(t==='p'){beam(A.clone().add(new THREE.Vector3(0,.45,0)),V.clone().add(new THREE.Vector3(0,.45,0)),a);particles(V,a,18,.12)}
+ if(t==='r'){beam(A.clone().add(new THREE.Vector3(0,.25,0)),V.clone().add(new THREE.Vector3(0,.25,0)),a);for(let i=0;i<4;i++)setTimeout(()=>ring(V,a),i*80);particles(V,0xf4b55e,36,.20)}
+ if(t==='n'){attacker.userData.hop=2;ring(V,0xffd34d);particles(V,a,34,.25)}
+ if(t==='b'){beam(A.clone().add(new THREE.Vector3(0,.8,0)),V.clone().add(new THREE.Vector3(0,.8,0)),0xffffff);particles(V,a,30,.18)}
+ if(t==='q'){for(let i=0;i<3;i++)setTimeout(()=>ring(V,i%2?a:0xffd34d),i*100);particles(V,a,52,.29);attacker.userData.spin=2}
+ if(t==='k'){ring(attacker.position.clone(),0xffffff);beam(A.clone().add(new THREE.Vector3(0,1,0)),V.clone().add(new THREE.Vector3(0,1,0)),a);ring(V,a);particles(V,0xffffff,32,.18)}
+ victim.userData.defeated=1;attacker.userData.attack=1;setTimeout(done,t==='q'?820:650)}
 function defeatTick(p,dt){if(!p.userData.defeated)return;p.rotation.z+=dt*8;p.scale.multiplyScalar(.94);p.position.y-=.012}
-function skillTick(p,t){if(p.userData.pulse){p.userData.pulse*=.91;const s=.78*(1+Math.sin(t*18)*.08*p.userData.pulse);p.scale.setScalar(s)}if(p.userData.attack){p.userData.attack*=.9;p.rotation.y+=.22*p.userData.attack}}
+function skillTick(p,t){if(p.userData.pulse){p.userData.pulse*=.91;const z=.86*(1+Math.sin(t*18)*.07*p.userData.pulse);p.scale.setScalar(z)}if(p.userData.attack){p.userData.attack*=.9;p.rotation.y+=.18*p.userData.attack}if(p.userData.hop){p.userData.hop*=.91;p.position.y=.2+Math.abs(Math.sin(t*10))*.65*p.userData.hop}if(p.userData.spin){p.userData.spin*=.93;p.rotation.y+=.28*p.userData.spin}if(p.userData.stomp){p.userData.stomp*=.9;p.scale.y=.86+Math.sin(t*22)*.12*p.userData.stomp}}
 
 let selected=null,legal=[],busy=false;
 function clearHighlights(){squares.forEach(q=>{q.material.emissive.setHex(0);q.material.emissiveIntensity=0;q.scale.y=1})}
@@ -72,7 +97,7 @@ function choosePiece(p){
 function moveTo(square){
  if(!selected||busy)return;const m=legal.find(x=>x.to===square);if(!m)return;
  busy=true;const attacker=selected,victim=pieceMap.get(square),from=attacker.position.clone(),to=pos(square);
- const execute=()=>{const move=game.move({from:m.from,to:m.to,promotion:'q'});animateMove(attacker,from,to,()=>{rebuildPieces();selected=null;legal=[];clearHighlights();busy=false;turnEl.textContent=game.turn()==='w'?'Lượt Trắng':'Lượt Đen';if(move.captured){toast('Bắt quân thành công! ✨');say('Tuyệt lắm! Con đã bắt được quân đối phương.')}else say('Nước đi hợp lệ. Giỏi lắm!');if(game.isCheckmate()){toast('Chiếu hết! 👑');say('Chiếu hết! Ván cờ kết thúc.')}else if(game.inCheck()){toast('Chiếu! ⚡');say('Chiếu! Vua đang bị tấn công.')}if(vsCpu&&game.turn()!==playerSide&&!game.isGameOver())setTimeout(cpuMove,650);})};
+ const execute=()=>{const move=game.move({from:m.from,to:m.to,promotion:'q'});animateMove(attacker,from,to,()=>{rebuildPieces();selected=null;legal=[];clearHighlights();busy=false;turnEl.textContent=game.turn()==='w'?'Lượt Trắng':'Lượt Đen';if(move.captured){upgradeCastle(move.color);toast('Bắt quân thành công! ✨');say('Tuyệt lắm! Con đã bắt được quân đối phương.')}else say('Nước đi hợp lệ. Giỏi lắm!');if(game.isCheckmate()){toast('Chiếu hết! 👑');say('Chiếu hết! Ván cờ kết thúc.')}else if(game.inCheck()){toast('Chiếu! ⚡');say('Chiếu! Vua đang bị tấn công.')}if(vsCpu&&game.turn()!==playerSide&&!game.isGameOver())setTimeout(cpuMove,650);})};
  if(victim&&victim.userData.color!==attacker.userData.color)captureSkill(attacker,victim,execute);else execute()
 }
 let mover=null;function animateMove(obj,from,to,done){mover={obj,from,to,t:0,done}}
@@ -87,9 +112,9 @@ function toast(t){const e=document.querySelector('#toast');e.textContent=t;e.cla
 document.querySelectorAll('.side').forEach(b=>b.onclick=()=>{document.querySelectorAll('.side').forEach(x=>x.classList.remove('active'));b.classList.add('active');playerSide=b.dataset.side});
 const saved=document.querySelector('#playerName');saved.value=playerName;document.querySelectorAll('.side').forEach(b=>b.classList.toggle('active',b.dataset.side===playerSide));
 function addNameFlag(){const old=world.getObjectByName('kidFlag');if(old)world.remove(old);const g=new THREE.Group();g.name='kidFlag';const z=playerSide==='w'?7.2:-7.2;cyl(g,-6,1.5,z,.07,3.2,0x6f4b2f);const cv=document.createElement('canvas');cv.width=512;cv.height=160;const x=cv.getContext('2d');x.fillStyle=playerSide==='w'?'#ffe27a':'#465675';x.fillRect(0,0,512,160);x.fillStyle=playerSide==='w'?'#26354d':'#fff';x.font='bold 54px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(playerName,256,80);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv)}));sp.position.set(-4.3,2.55,z);sp.scale.set(3.2,1,1);g.add(sp);world.add(g)}
-function cpuMove(){if(!vsCpu||game.turn()===playerSide||game.isGameOver()||busy)return;busy=true;const moves=game.moves({verbose:true});if(!moves.length){busy=false;return}const captures=moves.filter(m=>m.captured),pool=captures.length?captures:moves,m=pool[Math.floor(Math.random()*pool.length)],attacker=pieceMap.get(m.from),victim=pieceMap.get(m.to),from=attacker.position.clone(),to=pos(m.to);const go=()=>{game.move({from:m.from,to:m.to,promotion:'q'});animateMove(attacker,from,to,()=>{rebuildPieces();clearHighlights();selected=null;legal=[];busy=false;turnEl.textContent=game.turn()==='w'?'Lượt Trắng':'Lượt Đen';coach.textContent=playerName+' ơi, đến lượt con rồi!';say(playerName+' ơi, đến lượt con rồi!')})};if(victim)captureSkill(attacker,victim,go);else go()}
+function cpuMove(){if(!vsCpu||game.turn()===playerSide||game.isGameOver()||busy)return;busy=true;const moves=game.moves({verbose:true});if(!moves.length){busy=false;return}const captures=moves.filter(m=>m.captured),pool=captures.length?captures:moves,m=pool[Math.floor(Math.random()*pool.length)],attacker=pieceMap.get(m.from),victim=pieceMap.get(m.to),from=attacker.position.clone(),to=pos(m.to);const go=()=>{const cpuResult=game.move({from:m.from,to:m.to,promotion:'q'});if(cpuResult.captured)upgradeCastle(cpuResult.color);animateMove(attacker,from,to,()=>{rebuildPieces();clearHighlights();selected=null;legal=[];busy=false;turnEl.textContent=game.turn()==='w'?'Lượt Trắng':'Lượt Đen';coach.textContent=playerName+' ơi, đến lượt con rồi!';say(playerName+' ơi, đến lượt con rồi!')})};if(victim)captureSkill(attacker,victim,go);else go()}
 document.querySelector('#startBtn').onclick=()=>{playerName=(saved.value||'Nhà thám hiểm').trim().slice(0,18);vsCpu=document.querySelector('#vsCpu').checked;localStorage.setItem('chessKidName',playerName);localStorage.setItem('chessKidSide',playerSide);music();welcome.classList.add('hidden');coach.classList.remove('hidden');playerBanner.classList.remove('hidden');playerLabel.textContent='Vương quốc của '+playerName+' • '+(playerSide==='w'?'Trắng':'Đen');addNameFlag();say('Chào '+playerName+' đến với Vương quốc Cờ vua. Đây là đội quân của con.');if(vsCpu&&game.turn()!==playerSide)setTimeout(cpuMove,800)};
 
 function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);resize();
-let last=performance.now(),time=0;function animate(now){requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000);last=now;time+=dt;if(mover){mover.t=Math.min(1,mover.t+dt*2.5);const e=1-Math.pow(1-mover.t,3);mover.obj.position.lerpVectors(mover.from,mover.to,e);mover.obj.position.y=.2+Math.sin(e*Math.PI)*.8;if(mover.t>=1){const d=mover.done;mover=null;d()}}pieceMap.forEach(p=>{defeatTick(p,dt);skillTick(p,time)});world.children.forEach((o,i)=>{if(o.userData.cloud)o.position.x+=dt*(.18+i*.003)});flags.forEach((f,i)=>f.rotation.y=Math.sin(time*2+i)*.16);for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.life-=dt*(e.ring?1.8:1.4);if(e.ring){e.m.scale.addScalar(dt*2.2);e.m.material.opacity=e.life}else{e.v.y-=dt*.18;e.m.position.add(e.v);e.m.rotation.x+=.12;e.m.rotation.y+=.1}if(e.life<=0){scene.remove(e.m);effects.splice(i,1)}}controls.update();renderer.render(scene,camera)}requestAnimationFrame(animate);
+let last=performance.now(),time=0;function animate(now){requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000);last=now;time+=dt;if(mover){mover.t=Math.min(1,mover.t+dt*2.5);const e=1-Math.pow(1-mover.t,3);mover.obj.position.lerpVectors(mover.from,mover.to,e);mover.obj.position.y=.2+Math.sin(e*Math.PI)*.8;if(mover.t>=1){const d=mover.done;mover=null;d()}}pieceMap.forEach(p=>{defeatTick(p,dt);skillTick(p,time)});world.children.forEach((o,i)=>{if(o.userData.cloud)o.position.x+=dt*(.18+i*.003)});flags.forEach((f,i)=>f.rotation.y=Math.sin(time*2+i)*.16);for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.life-=dt*(e.ring?1.8:1.4);if(e.ring){e.m.scale.addScalar(dt*2.2);e.m.material.opacity=e.life}else if(e.beam){e.m.material.opacity=e.life}else{e.v.y-=dt*.18;e.m.position.add(e.v);e.m.rotation.x+=.12;e.m.rotation.y+=.1}if(e.life<=0){scene.remove(e.m);effects.splice(i,1)}}controls.update();renderer.render(scene,camera)}requestAnimationFrame(animate);
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');
