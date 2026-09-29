@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#87c7ff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Vương quốc Cờ vua" />
+  <title>Vương quốc Cờ vua</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/icon-192.svg">
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="world"></canvas>
+    <header class="hud">
+      <div>
+        <div class="eyebrow">HỌC CỜ VUA QUA KHÁM PHÁ</div>
+        <h1>Vương quốc Cờ vua</h1>
+      </div>
+      <div class="stars">⭐ <span id="stars">0</span>/6</div>
+    </header>
+
+    <section class="welcome panel" id="welcome">
+      <div class="mascot">♞</div>
+      <h2>Chào nhà thám hiểm nhỏ!</h2>
+      <p>Chạm vào một công trình trong vương quốc để học cách đi của từng quân cờ.</p>
+      <button id="startBtn">Bắt đầu khám phá</button>
+    </section>
+
+    <section class="lesson panel hidden" id="lesson">
+      <button class="close" id="closeLesson" aria-label="Đóng">×</button>
+      <div class="lesson-head">
+        <div class="piece-badge" id="pieceBadge">♙</div>
+        <div><div class="eyebrow" id="lessonZone">KHU VỰC</div><h2 id="lessonTitle"></h2></div>
+      </div>
+      <p id="lessonText"></p>
+      <div class="board-wrap">
+        <div id="board" class="board" aria-label="Bàn cờ tương tác"></div>
+      </div>
+      <p class="hint" id="hint">Chạm vào quân cờ, sau đó chọn một ô sáng.</p>
+      <button id="completeBtn" disabled>Hoàn thành bài học</button>
+    </section>
+
+    <div id="toast" class="toast hidden"></div>
+    <div class="help">Kéo để xoay • Chụm để phóng to • Chạm công trình để học</div>
+  </div>
+
+  <script type="importmap">
+  {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
+  </script>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
