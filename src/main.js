@@ -26,7 +26,7 @@ for(let i=0;i<7;i++){const g=new THREE.Group();for(const [x,y,z,r] of[[0,0,0,.8]
 const flags=[];for(const [x,z,c] of[[-7,-11,0xffd34d],[7,-11,0xef78ad],[-13,0,0x56b8ea],[13,0,0xf0a64b]]){const g=new THREE.Group();g.position.set(x,0,z);cyl(g,0,1.5,0,.06,3,0x6f4b2f);const flag=box(g,.45,2.55,0,.85,.48,.08,c);flag.geometry.translate(.42,0,0);flags.push(flag);world.add(g)}
 
 progressState.battleCaptures=progressState.battleCaptures||0;progressState.wins=progressState.wins||0;
-const castleLevels={w:Math.min(8,progressState.battleCaptures),b:0},castles={},castleLands={};
+const castleLevels={w:Math.min(8,progressState.battleCaptures),b:0},castles={},castleLands={},castleAccent={q:0xea70aa,k:0x4b80dc};
 function buildCastle(side){
  const old=castles[side];if(old)world.remove(old);const oldLand=castleLands[side];if(oldLand)world.remove(oldLand);
  const g=new THREE.Group(),land=new THREE.Group();g.name='castle-'+side;land.name='castle-land-'+side;
@@ -38,9 +38,9 @@ function buildCastle(side){
  brick(0,.2,0,2.5,.4,.8,0x6f4b2f);
  const width=4+Math.min(3,l);for(let i=-width;i<=width;i++){if(Math.abs(i)>1)brick(i*.68,.22,0);if(l>=1)brick(i*.68,.60,0)}
  if(l>=2)for(const x of[-3.2-grow*.35,3.2+grow*.35])for(let y=0;y<Math.min(5,2+Math.floor(l/2));y++)brick(x,.25+y*.38,0,1,.38,1);
- if(l>=3){for(let y=0;y<Math.min(6,3+Math.floor(l/2));y++)for(let x=-1;x<=1;x++)brick(x*.72,.25+y*.38,.3);brick(0,1.55+Math.min(1,l*.12),.3,2.4,.35,1.2,accent.q)}
- if(l>=5){for(const x of[-3.2-grow*.35,3.2+grow*.35]){brick(x,1.55,0,1.25,.35,1.25,accent.k);for(const dx of[-.4,.4])for(const dz of[-.4,.4])brick(x+dx,1.92,dz,.25,.35,.25,accent.k)}}
- if(l>=7){brick(0,2.45,.3,1.4,.35,1.4,0xffd34d);brick(0,2.85,.3,.7,.45,.7,accent.q)}
+ if(l>=3){for(let y=0;y<Math.min(6,3+Math.floor(l/2));y++)for(let x=-1;x<=1;x++)brick(x*.72,.25+y*.38,.3);brick(0,1.55+Math.min(1,l*.12),.3,2.4,.35,1.2,castleAccent.q)}
+ if(l>=5){for(const x of[-3.2-grow*.35,3.2+grow*.35]){brick(x,1.55,0,1.25,.35,1.25,castleAccent.k);for(const dx of[-.4,.4])for(const dz of[-.4,.4])brick(x+dx,1.92,dz,.25,.35,.25,castleAccent.k)}}
+ if(l>=7){brick(0,2.45,.3,1.4,.35,1.4,0xffd34d);brick(0,2.85,.3,.7,.45,.7,castleAccent.q)}
  castles[side]=g;world.add(g)
 }
 function saveProgress(){localStorage.setItem('chessKingdomProgress',JSON.stringify(progressState));bricksEl.textContent=progressState.bricks}
