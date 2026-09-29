@@ -13,6 +13,15 @@ const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.67,metalness:.02
 function box(p,x,y,z,sx,sy,sz,c){const o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat(c));o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o}
 function cyl(p,x,y,z,r,h,c,n=12){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,n),mat(c));o.position.set(x,y,z);o.castShadow=true;p.add(o);return o}
 const ground=new THREE.Mesh(new THREE.CylinderGeometry(16.5,17.5,1,48),mat(0x82c965));ground.position.y=-.72;ground.receiveShadow=true;scene.add(ground);
+/* fantasy kingdom background */
+const world=new THREE.Group();scene.add(world);
+function tree(x,z,scale=1){const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);box(g,0,.45,0,.28,.9,.28,0x76513c);const crown=new THREE.Mesh(new THREE.ConeGeometry(.72,1.75,7),mat(0x3f9857));crown.position.y=1.65;crown.castShadow=true;g.add(crown);world.add(g)}
+for(let i=0;i<34;i++){const a=i/34*Math.PI*2,r=13.1+(i%4)*.62;tree(Math.cos(a)*r,Math.sin(a)*r,.8+(i%3)*.12)}
+function tower(x,z,c){const g=new THREE.Group();g.position.set(x,0,z);box(g,0,.8,0,2.2,1.6,2.2,c);box(g,0,1.9,0,1.35,1.0,1.35,0xffe4a3);const roof=new THREE.Mesh(new THREE.ConeGeometry(1.2,1.55,4),mat(c));roof.position.y=3.05;roof.rotation.y=Math.PI/4;roof.castShadow=true;g.add(roof);for(const xx of[-.65,.65])for(const zz of[-.65,.65])cyl(g,xx,1.65,zz,.18,.35,0xffd35b);world.add(g)}
+tower(-11,-8,0xe96d5c);tower(11,-8,0x58b88a);tower(-11,8,0x9b77d3);tower(11,8,0x56b8ea);
+const cloudMat=new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.78,roughness:1});
+for(let i=0;i<7;i++){const g=new THREE.Group();for(const [x,y,z,r] of[[0,0,0,.8],[.7,.05,0,.6],[-.65,.02,0,.55],[.2,.35,0,.62]]){const m=new THREE.Mesh(new THREE.SphereGeometry(r,10,8),cloudMat);m.position.set(x,y,z);g.add(m)}g.position.set(-15+i*5,8+(i%2),-14-(i%3)*2);g.userData.cloud=true;world.add(g)}
+const flags=[];for(const [x,z,c] of[[-7,-11,0xffd34d],[7,-11,0xef78ad],[-13,0,0x56b8ea],[13,0,0xf0a64b]]){const g=new THREE.Group();g.position.set(x,0,z);cyl(g,0,1.5,0,.06,3,0x6f4b2f);const flag=box(g,.45,2.55,0,.85,.48,.08,c);flag.geometry.translate(.42,0,0);flags.push(flag);world.add(g)}
 
 const CELL=1.34,boardG=new THREE.Group();scene.add(boardG);box(boardG,0,-.14,0,CELL*8+.75,.35,CELL*8+.75,0x60402d);
 const squares=[],squareMeshes=[];
@@ -50,12 +59,15 @@ function skillTick(p,t){if(p.userData.pulse){p.userData.pulse*=.91;const s=.78*(
 
 let selected=null,legal=[],busy=false;
 function clearHighlights(){squares.forEach(q=>{q.material.emissive.setHex(0);q.material.emissiveIntensity=0;q.scale.y=1})}
-function highlight(moves){clearHighlights();moves.forEach(m=>{const q=squares.find(x=>x.userData.square===m.to);q.material.emissive.setHex(m.captured?0x9d1028:0x7a6500);q.material.emissiveIntensity=m.captured?.9:.7;q.scale.y=1.18})}
+function highlight(moves){clearHighlights();moves.forEach(m=>{const q=squares.find(x=>x.userData.square===m.to);q.material.emissive.setHex(m.captured?0xff1744:0xffdf32);q.material.emissiveIntensity=m.captured?1.15:1.0;q.scale.y=1.32;ring(q.position.clone(),m.captured?0xff3155:0xffe45b)})}
 function choosePiece(p){
- if(busy||p.userData.color!==game.turn())return;
- selected=p;legal=game.moves({square:p.userData.square,verbose:true});selectSkill(p);highlight(legal);
+ if(busy)return;if(p.userData.color!==game.turn()){const side=game.turn()==='w'?'Trắng':'Đen';toast('⏳ Chưa đến lượt quân này');coach.textContent='Bây giờ là lượt '+side+'. Con hãy chọn quân '+side+'.';say('Chưa đến lượt quân này. Con hãy chọn quân '+side+'.');return;}
+ selected=p;legal=game.moves({square:p.userData.square,verbose:true});selectSkill(p);
  const n={p:'Tốt',r:'Xe',n:'Mã',b:'Tượng',q:'Hậu',k:'Vua'}[p.userData.type];
- coach.textContent='Đã chọn '+n+'. Ô vàng: nước đi. Ô đỏ: có thể bắt quân đối phương.';say('Đây là quân '+n+'. Con hãy chọn một ô đang sáng.')
+ if(!legal.length){clearHighlights();coach.textContent='Quân '+n+' hiện chưa có nước đi hợp lệ. Có thể đang bị quân khác chặn hoặc đi sẽ làm Vua bị chiếu.';toast('🚫 '+n+' chưa thể di chuyển!');say('Quân '+n+' hiện chưa có nước đi hợp lệ. Con hãy chọn một quân khác nhé.');selected=null;return}
+ highlight(legal);const captures=legal.filter(m=>m.captured).length;
+ coach.textContent='Đã chọn '+n+'. Có '+legal.length+' ô có thể đi'+(captures?' và '+captures+' nước có thể bắt quân.':'.')+' Ô vàng là nước đi, ô đỏ là bắt quân.';
+ say('Đây là quân '+n+'. Con có '+legal.length+' nước đi hợp lệ. Hãy chọn một ô đang sáng.')
 }
 function moveTo(square){
  if(!selected||busy)return;const m=legal.find(x=>x.to===square);if(!m)return;
@@ -75,5 +87,5 @@ function toast(t){const e=document.querySelector('#toast');e.textContent=t;e.cla
 document.querySelector('#startBtn').onclick=()=>{music();welcome.classList.add('hidden');coach.classList.remove('hidden');say('Chào con đến với đấu trường cờ vua. Trên bàn có đủ hai đội Trắng và Đen. Con hãy chạm một quân Trắng để xem những nước đi hợp lệ.')};
 
 function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);resize();
-let last=performance.now(),time=0;function animate(now){requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000);last=now;time+=dt;if(mover){mover.t=Math.min(1,mover.t+dt*2.5);const e=1-Math.pow(1-mover.t,3);mover.obj.position.lerpVectors(mover.from,mover.to,e);mover.obj.position.y=.2+Math.sin(e*Math.PI)*.8;if(mover.t>=1){const d=mover.done;mover=null;d()}}pieceMap.forEach(p=>{defeatTick(p,dt);skillTick(p,time)});for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.life-=dt*(e.ring?1.8:1.4);if(e.ring){e.m.scale.addScalar(dt*2.2);e.m.material.opacity=e.life}else{e.v.y-=dt*.18;e.m.position.add(e.v);e.m.rotation.x+=.12;e.m.rotation.y+=.1}if(e.life<=0){scene.remove(e.m);effects.splice(i,1)}}controls.update();renderer.render(scene,camera)}requestAnimationFrame(animate);
+let last=performance.now(),time=0;function animate(now){requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000);last=now;time+=dt;if(mover){mover.t=Math.min(1,mover.t+dt*2.5);const e=1-Math.pow(1-mover.t,3);mover.obj.position.lerpVectors(mover.from,mover.to,e);mover.obj.position.y=.2+Math.sin(e*Math.PI)*.8;if(mover.t>=1){const d=mover.done;mover=null;d()}}pieceMap.forEach(p=>{defeatTick(p,dt);skillTick(p,time)});world.children.forEach((o,i)=>{if(o.userData.cloud)o.position.x+=dt*(.18+i*.003)});flags.forEach((f,i)=>f.rotation.y=Math.sin(time*2+i)*.16);for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.life-=dt*(e.ring?1.8:1.4);if(e.ring){e.m.scale.addScalar(dt*2.2);e.m.material.opacity=e.life}else{e.v.y-=dt*.18;e.m.position.add(e.v);e.m.rotation.x+=.12;e.m.rotation.y+=.1}if(e.life<=0){scene.remove(e.m);effects.splice(i,1)}}controls.update();renderer.render(scene,camera)}requestAnimationFrame(animate);
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');
