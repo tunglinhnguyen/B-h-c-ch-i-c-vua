@@ -76,16 +76,16 @@ rebuildPieces();
 
 const lessons=[
  {type:'p',title:'1. Tốt xung phong',text:'Đưa quân Tốt tiến lên. Tốt đi thẳng và chỉ ăn chéo.',fen:'4k3/8/8/8/8/8/4P3/4K3 w - - 0 1'},
- {type:'r',title:'2. Xe mở đường',text:'Dùng Xe đi theo hàng hoặc cột để bắt mục tiêu.',fen:'4k3/8/4p3/8/8/8/4R3/6K1 w - - 0 1',capture:true},
- {type:'n',title:'3. Mã thiên mã',text:'Mã nhảy hình chữ L. Hãy bắt mục tiêu đang chờ.',fen:'4k3/8/8/8/5p2/8/4N3/6K1 w - - 0 1',capture:true},
- {type:'b',title:'4. Tượng quang tuyến',text:'Tượng đi chéo. Hãy tìm đường chéo đến mục tiêu.',fen:'4k3/7p/8/8/8/3B4/8/6K1 w - - 0 1',capture:true},
- {type:'q',title:'5. Hậu quyền năng',text:'Hậu kết hợp sức mạnh của Xe và Tượng. Hãy bắt mục tiêu.',fen:'4k3/8/7p/8/8/3Q4/8/6K1 w - - 0 1',capture:true},
+ {type:'r',title:'2. Xe mở đường',text:'Dùng Xe đi theo hàng hoặc cột để bắt quân Tốt ở e6.',fen:'4k3/8/4p3/8/8/8/4R3/6K1 w - - 0 1',capture:true,target:'e6'},
+ {type:'n',title:'3. Mã thiên mã',text:'Mã nhảy hình chữ L. Hãy bắt quân Tốt ở f4.',fen:'4k3/8/8/8/5p2/8/4N3/6K1 w - - 0 1',capture:true,target:'f4'},
+ {type:'b',title:'4. Tượng quang tuyến',text:'Tượng đi chéo. Hãy bắt quân Tốt ở h7.',fen:'4k3/7p/8/8/8/3B4/8/6K1 w - - 0 1',capture:true,target:'h7'},
+ {type:'q',title:'5. Hậu quyền năng',text:'Hậu đi ngang, dọc và chéo. Hãy đi chéo từ d3 đến h7 để bắt quân Tốt.',fen:'4k3/7p/8/8/8/3Q4/8/6K1 w - - 0 1',capture:true,target:'h7'},
  {type:'k',title:'6. Vua chỉ huy',text:'Vua chỉ đi một ô. Hãy đưa Vua đến một ô an toàn.',fen:'7k/8/8/8/8/8/4K3/8 w - - 0 1'},
  {type:'boss',title:'👑 BOSS: Cổng thành Bóng Tối',text:'Dùng Hậu chiếu hết Vua Bóng Tối trong 1 nước!',fen:'7k/5K2/8/8/8/8/6Q1/8 w - - 0 1',boss:true}
 ];
 let lessonIndex=Math.min(progressState.lesson,lessons.length-1),missionActive=false,missionDone=false;
 function lessonLoad(i){lessonIndex=i;const L=lessons[i];game.load(L.fen);selected=null;legal=[];busy=false;clearHighlights();rebuildPieces();missionActive=true;missionDone=false;missionCard.classList.remove('hidden');document.querySelector('#nextMission').classList.add('hidden');turnEl.textContent='Lượt học';missionTitle.textContent=L.title;missionText.textContent=L.text;missionStars.textContent=L.boss?'👑 BOSS':'☆☆☆';progressBar.style.width=(i/(lessons.length-1)*100)+'%';coach.textContent='Nhiệm vụ: '+L.text;say(L.title+'. '+L.text)}
-function completeMission(move){if(!missionActive||missionDone)return;const L=lessons[lessonIndex],ok=L.boss?game.isCheckmate():(move.piece===L.type&&(!L.capture||!!move.captured));if(!ok)return;missionDone=true;missionStars.textContent='★★★';progressBar.style.width=((lessonIndex+1)/(lessons.length-1)*100)+'%';const reward=L.boss?8:3;rewardBricks(reward);progressState.lesson=Math.max(progressState.lesson,Math.min(lessons.length-1,lessonIndex+1));saveProgress();missionText.textContent=L.boss?'BOSS bị đánh bại! Vương quốc đã được bảo vệ.':'Hoàn thành! Con đã sử dụng đúng cách đi của quân này.';toast(L.boss?'🏆 THẮNG BOSS!':'⭐ Hoàn thành nhiệm vụ!');say('Xuất sắc '+playerName+'! Con đã hoàn thành nhiệm vụ.');if(lessonIndex<lessons.length-1)document.querySelector('#nextMission').classList.remove('hidden')}
+function completeMission(move){if(!missionActive||missionDone)return false;const L=lessons[lessonIndex],typeOK=L.boss?move.piece==='q':move.piece===L.type,targetOK=!L.target||move.to===L.target,captureOK=!L.capture||!!move.captured,ok=L.boss?game.isCheckmate():(typeOK&&targetOK&&captureOK);if(!ok)return false;missionDone=true;missionActive=false;selected=null;legal=[];clearHighlights();turnEl.textContent='Hoàn thành ✓';missionStars.textContent='★★★';progressBar.style.width=((lessonIndex+1)/(lessons.length-1)*100)+'%';const reward=L.boss?8:3;rewardBricks(reward);progressState.lesson=Math.max(progressState.lesson,Math.min(lessons.length-1,lessonIndex+1));saveProgress();missionText.textContent=L.boss?'BOSS bị đánh bại! Vương quốc đã được bảo vệ.':'Hoàn thành! '+playerName+' đã đi đúng nước '+move.from+' → '+move.to+'.';coach.textContent='⭐ Chính xác! Bài học đã hoàn thành. Bấm “Nhiệm vụ tiếp theo” để học quân mới.';toast(L.boss?'🏆 THẮNG BOSS!':'⭐ Hoàn thành nhiệm vụ!');say('Xuất sắc '+playerName+'! Con đã hoàn thành nhiệm vụ.');if(lessonIndex<lessons.length-1)document.querySelector('#nextMission').classList.remove('hidden');return true}
 document.querySelector('#nextMission').onclick=()=>lessonLoad(Math.min(lessons.length-1,lessonIndex+1));
 
 /* particles / skill VFX */
@@ -117,7 +117,7 @@ function finishBattle(){
  turnEl.textContent='Kết thúc';coach.textContent=text;gameOverIcon.textContent=icon;gameOverTitle.textContent=title;gameOverText.textContent=text;gameOverEl.classList.remove('hidden');toast(title);say(title+'. '+text);return true
 }
 function choosePiece(p){
- if(gameMode==='battle'&&game.isGameOver()){finishBattle();return}if(busy)return;
+ if(gameMode==='battle'&&game.isGameOver()){finishBattle();return}if(gameMode==='learn'&&missionDone){toast('⭐ Bài này đã hoàn thành');coach.textContent='Bấm “Nhiệm vụ tiếp theo” để tiếp tục nhé.';return}if(busy)return;
  if(gameMode==='learn'){
    const L=lessons[lessonIndex];
    if(p.userData.color!==game.turn()){toast('🎓 Đây là quân minh họa');coach.textContent='Trong bài học này con chỉ điều khiển quân '+({p:'Tốt',r:'Xe',n:'Mã',b:'Tượng',q:'Hậu',k:'Vua',boss:'Hậu'}[L.type])+'.';return}
@@ -131,13 +131,13 @@ function choosePiece(p){
  const n={p:'Tốt',r:'Xe',n:'Mã',b:'Tượng',q:'Hậu',k:'Vua'}[p.userData.type];
  if(!legal.length){clearHighlights();coach.textContent='Quân '+n+' hiện chưa có nước đi hợp lệ. Có thể đang bị quân khác chặn hoặc đi sẽ làm Vua bị chiếu.';toast('🚫 '+n+' chưa thể di chuyển!');say('Quân '+n+' hiện chưa có nước đi hợp lệ. Con hãy chọn một quân khác nhé.');selected=null;return}
  highlight(legal);const captures=legal.filter(m=>m.captured).length;
- coach.textContent='Đã chọn '+n+'. Có '+legal.length+' ô có thể đi'+(captures?' và '+captures+' nước có thể bắt quân.':'.')+' Ô vàng là nước đi, ô đỏ là bắt quân.';
+ if(gameMode==='learn'&&lessons[lessonIndex].target){const target=lessons[lessonIndex].target;coach.textContent='Đã chọn '+n+'. Hãy tìm ô '+target+' màu đỏ để bắt mục tiêu.'}else coach.textContent='Đã chọn '+n+'. Có '+legal.length+' ô có thể đi'+(captures?' và '+captures+' nước có thể bắt quân.':'.')+' Ô vàng là nước đi, ô đỏ là bắt quân.';
  say('Đây là quân '+n+'. Con có '+legal.length+' nước đi hợp lệ. Hãy chọn một ô đang sáng.')
 }
 function moveTo(square){
  if(!selected||busy)return;const m=legal.find(x=>x.to===square);if(!m)return;
  busy=true;const attacker=selected,victim=pieceMap.get(square),from=attacker.position.clone(),to=pos(square);
- const execute=()=>{const move=game.move({from:m.from,to:m.to,promotion:'q'});animateMove(attacker,from,to,()=>{rebuildPieces();selected=null;legal=[];clearHighlights();busy=false;turnEl.textContent=game.turn()==='w'?'Lượt Trắng':'Lượt Đen';if(move.captured){upgradeCastle(move.color);toast('Bắt quân thành công! ✨');say('Tuyệt lắm! Con đã bắt được quân đối phương.')}else say('Nước đi hợp lệ. Giỏi lắm!');completeMission(move);if(gameMode==='learn'&&!missionDone){setTimeout(()=>{toast('💡 Thử lại nhiệm vụ nhé');lessonLoad(lessonIndex)},650);return}if(gameMode==='battle'&&finishBattle())return;if(game.inCheck()){toast('Chiếu! ⚡');say('Chiếu! Vua đang bị tấn công.')}if(gameMode==='battle'&&vsCpu&&game.turn()!==playerSide)setTimeout(cpuMove,650);})};
+ const execute=()=>{const move=game.move({from:m.from,to:m.to,promotion:'q'});animateMove(attacker,from,to,()=>{rebuildPieces();selected=null;legal=[];clearHighlights();busy=false;if(gameMode==='learn'){const completed=completeMission(move);if(completed)return;turnEl.textContent='Lượt học';setTimeout(()=>{toast('💡 Chưa đúng mục tiêu, thử lại nhé');lessonLoad(lessonIndex)},650);return}turnEl.textContent=game.turn()==='w'?'Lượt Trắng':'Lượt Đen';if(move.captured){upgradeCastle(move.color);toast('Bắt quân thành công! ✨');say('Tuyệt lắm! Con đã bắt được quân đối phương.')}else say('Nước đi hợp lệ. Giỏi lắm!');if(gameMode==='battle'&&finishBattle())return;if(game.inCheck()){toast('Chiếu! ⚡');say('Chiếu! Vua đang bị tấn công.')}if(gameMode==='battle'&&vsCpu&&game.turn()!==playerSide)setTimeout(cpuMove,650);})};
  if(victim&&victim.userData.color!==attacker.userData.color)captureSkill(attacker,victim,execute);else execute()
 }
 let mover=null;function animateMove(obj,from,to,done){mover={obj,from,to,t:0,done}}
