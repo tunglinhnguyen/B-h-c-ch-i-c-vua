@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<rect width="512" height="512" rx="96" fill="#87c7ff"/><rect x="72" y="310" width="368" height="112" rx="20" fill="#f1c66b"/>
+<rect x="102" y="210" width="92" height="150" rx="12" fill="#dba84e"/><rect x="318" y="210" width="92" height="150" rx="12" fill="#dba84e"/>
+<text x="256" y="300" text-anchor="middle" font-size="190" font-family="serif" fill="#25334b">♞</text>
+<circle cx="126" cy="201" r="18" fill="#dba84e"/><circle cx="166" cy="201" r="18" fill="#dba84e"/><circle cx="342" cy="201" r="18" fill="#dba84e"/><circle cx="382" cy="201" r="18" fill="#dba84e"/>
+</svg>
